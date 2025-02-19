@@ -1,6 +1,7 @@
 #r "System.Windows.Forms.dll"
 #r "System.Drawing.dll"
 #r "nuget: Microsoft.Windows.Compatibility, 3.1.0"
+#r "nuget: Accessibility, 4.6.0-preview3-27504-2"
 
 using System;
 using System.Windows.Forms;
