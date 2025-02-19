@@ -70,3 +70,7 @@ CSX-Forms is a WinForms utility script for CSX files to build windowed applicati
     ```sh
     dotnet script examples/basicWindow.csx
     ```
+
+### Screenshots
+
+![Basic Window](resources/basicWindow.png)
