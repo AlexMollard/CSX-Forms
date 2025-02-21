@@ -9,9 +9,16 @@ using System.Drawing;
 using Microsoft.Win32;
 using System.Drawing.Drawing2D;
 
-// nullable enable
+/// <summary>
+/// Modern Windows Forms UI library with automatic theming support
+/// Provides Windows 11 style components with dark/light mode support
+/// </summary>
 #nullable enable
 
+/// <summary>
+/// Manages window creation and styling with modern Windows 11 features
+/// Handles DPI awareness, dark mode, and rounded corners automatically
+/// </summary>
 public class WindowManager
 {
     public WindowManager()
@@ -120,6 +127,12 @@ public class WindowManager
         }
     }
 
+    /// <summary>
+    /// Adds a global keyboard shortcut handler to the form
+    /// </summary>
+    /// <param name="form">Target form</param>
+    /// <param name="key">Key to monitor</param>
+    /// <param name="handler">Event handler to execute</param>
     public void AddKeyEventHandler(Form form, System.Windows.Forms.Keys key, KeyEventHandler handler)
     {
         form.KeyPreview = true;
@@ -160,6 +173,11 @@ public class WindowManager
         form.Controls.Add(themeButton);
     }
 
+    /// <summary>
+    /// Creates a new window with modern styling and theme support
+    /// </summary>
+    /// <param name="form">The form to initialize</param>
+    /// <param name="menuStrip">Optional menu strip to style</param>
     public void CreateForm(Form form, MenuStrip? menuStrip = null)
     {
         form.AutoScaleMode = AutoScaleMode.Dpi;
@@ -181,6 +199,143 @@ public class WindowManager
         themeManager.ApplyTheme(_isDarkMode);
         UseImmersiveDarkMode(form, _isDarkMode);
     }
+
+    /// <summary>
+    /// Creates a collapsible panel with modern Windows 11 styling
+    /// </summary>
+    /// <param name="title">Header text for the panel</param>
+    /// <param name="headerColor">Optional custom header color</param>
+    /// <returns>A styled Panel with collapse functionality</returns>
+    public Panel CreateCollapsiblePanel(string title, Color? headerColor = null)
+    {
+        // Default to a modern blue if no color is provided
+        var defaultHeaderColor = Color.FromArgb(51, 153, 255);
+        var actualHeaderColor = headerColor ?? defaultHeaderColor;
+
+        var panel = new Panel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            Padding = new Padding(12), // Increased padding
+            Margin = new Padding(0, 0, 0, 12)  // Increased margin
+        };
+
+        // Store the current color in the panel's Tag
+        panel.Tag = new CollapsiblePanelData { HeaderColor = actualHeaderColor };
+
+        var headerPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 48, // Increased height for better touch targets
+            BackColor = actualHeaderColor,
+            Padding = new Padding(12, 0, 12, 0), // Increased padding
+            Tag = "header-panel" // Add tag to identify header panel
+        };
+
+        // Enhanced rounded corners and shadow effect
+        headerPanel.Paint += (s, e) =>
+        {
+            using (var path = new GraphicsPath())
+            {
+                var radius = 8f; // Increased radius for smoother corners
+                path.AddArc(0, 0, radius * 2, radius * 2, 180, 90);
+                path.AddArc(headerPanel.Width - radius * 2, 0, radius * 2, radius * 2, 270, 90);
+                path.AddArc(headerPanel.Width - radius * 2, headerPanel.Height - radius * 2, radius * 2, radius * 2, 0, 90);
+                path.AddArc(0, headerPanel.Height - radius * 2, radius * 2, radius * 2, 90, 90);
+                path.CloseFigure();
+
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+                // Optional: Add subtle gradient
+                using (var brush = new LinearGradientBrush(
+                    headerPanel.ClientRectangle,
+                    Color.FromArgb(255, actualHeaderColor),
+                    Color.FromArgb(225, actualHeaderColor),
+                    LinearGradientMode.Vertical))
+                {
+                    e.Graphics.FillPath(brush, path);
+                }
+
+                headerPanel.Region = new Region(path);
+            }
+        };
+
+        var toggleButton = new Button
+        {
+            Text = "▼",
+            Dock = DockStyle.Left,
+            Width = 36, // Slightly wider
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.Transparent,
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 10f, FontStyle.Bold),
+            Cursor = Cursors.Hand,
+            Tag = "collapsible-toggle",
+            FlatAppearance = {
+                BorderSize = 0,
+                MouseOverBackColor = Color.FromArgb(40, Color.White),
+                MouseDownBackColor = Color.FromArgb(60, Color.White)
+            }
+        };
+
+        var titleLabel = new Label
+        {
+            Text = title,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Font = new Font("Segoe UI Semibold", 11f), // Changed to Semibold
+            ForeColor = Color.White,
+            Tag = "collapsible-title",
+            Padding = new Padding(8, 0, 0, 0)
+        };
+
+        var contentPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            Padding = new Padding(2, 12, 2, 4), // Adjusted padding
+            Tag = "collapsible-content"
+        };
+
+        toggleButton.Click += (s, e) =>
+        {
+            toggleButton.Text = contentPanel.Visible ? "▶" : "▼";
+            contentPanel.Visible = !contentPanel.Visible;
+        };
+
+        headerPanel.Controls.Add(titleLabel);
+        headerPanel.Controls.Add(toggleButton);
+        panel.Controls.Add(contentPanel);
+        panel.Controls.Add(headerPanel);
+
+        return panel;
+    }
+
+    /// <summary>
+    /// Updates the color scheme of an existing collapsible panel
+    /// </summary>
+    /// <param name="panel">Target panel to update</param>
+    /// <param name="newColor">New color to apply</param>
+    public void SetCollapsiblePanelColor(Panel panel, Color newColor)
+    {
+        if (panel.Tag is CollapsiblePanelData data)
+        {
+            data.HeaderColor = newColor;
+            var headerPanel = panel.Controls.OfType<Panel>()
+                                  .FirstOrDefault(p => p.Tag?.ToString() == "header-panel");
+
+            if (headerPanel != null)
+            {
+                headerPanel.BackColor = newColor;
+                headerPanel.Invalidate(); // Force redraw for gradient
+            }
+        }
+    }
+
+    private class CollapsiblePanelData
+    {
+        public Color HeaderColor { get; set; }
+    }
 }
 
 // Custom color table for modern look
@@ -199,12 +354,35 @@ public class CustomColorTable : ProfessionalColorTable
     public override Color MenuItemSelectedGradientEnd => this.MenuItemSelectedColor;
 }
 
+/// <summary>
+/// Defines modern color schemes for UI components
+/// Supports Windows 11 light and dark themes
+/// </summary>
 public class ThemeColors
 {
+    /// <summary>
+    /// Primary background color for the window
+    /// </summary>
     public Color Background { get; set; }
+
+    /// <summary>
+    /// Background color for menu elements
+    /// </summary>
     public Color MenuBackground { get; set; }
+
+    /// <summary>
+    /// Primary text color
+    /// </summary>
     public Color Text { get; set; }
+
+    /// <summary>
+    /// Hover state color for interactive elements
+    /// </summary>
     public Color Hover { get; set; }
+
+    /// <summary>
+    /// Border color for UI elements
+    /// </summary>
     public Color Border { get; set; }
 
     public static ThemeColors Dark => new()
@@ -244,6 +422,10 @@ public class ThemeColors
     };
 }
 
+/// <summary>
+/// Manages application-wide theme application and updates
+/// Handles Windows 11 system theme detection and styling
+/// </summary>
 public class ThemeManager
 {
     private readonly Form _form;
@@ -257,6 +439,10 @@ public class ThemeManager
         _menuStrip = menuStrip;
     }
 
+    /// <summary>
+    /// Applies the specified theme to all form controls
+    /// </summary>
+    /// <param name="isDark">True for dark theme, false for light theme</param>
     public void ApplyTheme(bool isDark)
     {
         _colors = isDark ? ThemeColors.Windows11Dark : ThemeColors.Windows11Light;
@@ -315,14 +501,27 @@ public class ThemeManager
     {
         switch (control)
         {
+            case DataGridView grid:
+                StyleDataGridView(grid);
+                break;
+            case Button button when button.Tag?.ToString() == "collapsible-toggle":
+                button.ForeColor = _colors.Text;
+                button.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, _colors.Text);
+                break;
             case Button btn:
                 StyleButton(btn);
                 break;
             case TextBox txt:
                 StyleTextBox(txt);
                 break;
+            case Label label when label.Tag?.ToString() == "collapsible-title":
+                label.ForeColor = _colors.Text;
+                break;
             case Label lbl:
                 lbl.ForeColor = _colors.Text;
+                break;
+            case Panel panel when panel.Tag?.ToString() == "collapsible-content":
+                panel.BackColor = _colors.Background;
                 break;
             case Panel panel:
                 panel.BackColor = _colors.Background;
@@ -348,6 +547,67 @@ public class ThemeManager
         }
     }
 
+    /// <summary>
+    /// Applies modern styling to DataGridView controls
+    /// Matches the current theme while maintaining readability
+    /// </summary>
+    private void StyleDataGridView(DataGridView grid)
+    {
+        grid.EnableHeadersVisualStyles = false;
+        grid.BackgroundColor = _colors.Background;
+        grid.ForeColor = _colors.Text;
+        grid.GridColor = _colors.Border;
+        grid.BorderStyle = BorderStyle.None;
+
+        // Column headers styling
+        grid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+        {
+            BackColor = _colors.MenuBackground,
+            ForeColor = _colors.Text,
+            SelectionBackColor = _colors.Hover,
+            Font = new Font(grid.Font.FontFamily, grid.Font.Size, FontStyle.Bold),
+            Alignment = DataGridViewContentAlignment.MiddleLeft,
+            Padding = new Padding(8, 4, 8, 4)
+        };
+
+        grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+
+        // Create base style
+        var baseStyle = new DataGridViewCellStyle
+        {
+            BackColor = _colors.Background,
+            ForeColor = _colors.Text,
+            SelectionBackColor = _colors.Hover,
+            SelectionForeColor = _colors.Text,
+            Alignment = DataGridViewContentAlignment.MiddleLeft,
+            Padding = new Padding(8, 4, 8, 4)
+        };
+
+        // Apply base style
+        grid.DefaultCellStyle = baseStyle;
+
+        // Create and apply alternate style
+        var alternateStyle = baseStyle.Clone() as DataGridViewCellStyle;
+        if (alternateStyle != null)
+        {
+            alternateStyle.BackColor = Color.FromArgb(
+                255,
+                _colors.Background.R + 5,
+                _colors.Background.G + 5,
+                _colors.Background.B + 5
+            );
+            grid.AlternatingRowsDefaultCellStyle = alternateStyle;
+        }
+
+        // Force a visual refresh
+        grid.Update();
+        grid.Refresh();
+    }
+
+    /// <summary>
+    /// Applies appropriate button styling based on theme
+    /// Handles both standard and special-case buttons
+    /// </summary>
     private void StyleButton(Button button)
     {
         if (_colors == ThemeColors.Dark)
@@ -364,6 +624,10 @@ public class ThemeManager
         }
     }
 
+    /// <summary>
+    /// Updates text box appearance for the current theme
+    /// Maintains Windows native styling in light mode
+    /// </summary>
     private void StyleTextBox(TextBox textBox)
     {
         if (_colors == ThemeColors.Dark)
